@@ -1,0 +1,73 @@
+function spmj_move_realigned_images(sn, varargin)
+% Move images created by realign(+unwarp) into imaging_data
+% sn should be int
+%TODO: Fix the run reading.. it doesn't work. 
+% Setting the base directory for the current project
+baseDir = '/Volumes/Diedrichsen_data$/data/Chord_exp/EFC_patternfMRI';
+imagingRawDir = 'imaging_data_raw';     % Temporary directory for raw functional data
+imagingDir    = 'imaging_data_test';     % Preprocessed functional data
+
+% Read subject info from the participants.tsv file
+pinfo = dload(fullfile(baseDir, 'participants.tsv'));
+
+% Handling input args:
+prefix = 'u';   % 'u' for the 4D images after realign+unwarp; could be 'r' for realigned only.
+rtm = 0;        % realign_unwarp registered to the first volume (0) or the mean image (1).
+vararginoptions(varargin, {'prefix', 'rtm'});
+
+if isempty(sn)
+    error('FUNC:move_realigned_images -> ''sn'' must be passed to this function.')
+end
+
+% Extract the participant ID (e.g., 's101') using the subject number.
+participant = char(pinfo.participant_id(pinfo.sn == sn));
+
+% For runs, use the FuncRuns field from the TSV file.
+run_list = pinfo.FuncRuns(pinfo.sn == sn);
+% If run_list is a single string containing delimited runs, split it:
+if ischar(run_list)
+    run_list = split(run_list);
+end
+% Convert run numbers to a two-digit string format if needed:
+run_list = cellfun(@(x) sprintf('%.02d', str2double(x)), run_list, 'UniformOutput', false);
+
+% Loop over sessions (using the numSess field)
+for sess = 1:pinfo.numSess(pinfo.sn == sn)
+    
+    % Loop on runs of the session:
+    for r = 1:length(run_list)
+        % Construct the file name.
+        % If your files are like "us1XX_run_XX_sbref.nii", then:
+        file_name = [prefix, participant, '_run_', run_list{r}, '_sbref.nii'];
+        fprintf('Processing file: %s\n', file_name)
+        
+        % Define source and destination directories:
+        source = fullfile(baseDir, imagingRawDir, participant, sprintf('sess%d', sess), file_name);
+        destDir = fullfile(baseDir, imagingDir, participant, sprintf('sess%d', sess));
+        if ~exist(destDir, 'dir')
+            mkdir(destDir)
+        end
+        dest = fullfile(destDir, file_name);
+        
+        % Move the file:
+        [status, msg] = movefile(source, dest);
+        if ~status
+            error('BIDS:move_realigned_images -> %s', msg)
+        end
+        
+    end
+    
+    % Handle the mean epi image. The file name differs based on rtm.
+    if rtm == 0   % Registered to the first volume of each run
+        mean_file = ['mean', prefix, participant, '_run_', run_list{1}, '.nii'];
+    else          % Registered to the mean image of each run
+        mean_file = [prefix, 'meanepi_', participant, '.nii'];
+    end
+    source_mean = fullfile(baseDir, imagingRawDir, participant, sprintf('sess%d', sess), mean_file);
+    dest_mean   = fullfile(baseDir, imagingDir, participant, sprintf('sess%d', sess), mean_file);
+    
+    [status, msg] = movefile(source_mean, dest_mean);
+    if ~status
+        error('BIDS:move_realigned_images -> %s', msg)
+    end
+end
