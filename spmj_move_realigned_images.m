@@ -1,7 +1,7 @@
 function spmj_move_realigned_images(sn, varargin)
 % Move images created by realign(+unwarp) into imaging_data
-% sn should be int
-%TODO: Fix the run reading.. it doesn't work. 
+% sn should be int when running the function (not CHAR)
+
 % Setting the base directory for the current project
 baseDir = '/Volumes/Diedrichsen_data$/data/Chord_exp/EFC_patternfMRI';
 imagingRawDir = 'imaging_data_raw';     % Temporary directory for raw functional data
@@ -66,17 +66,4 @@ for sess = 1:pinfo.numSess(pinfo.sn == sn)
         
     end
     
-    % Handle the mean epi image. The file name differs based on rtm.
-    if rtm == 0   % Registered to the first volume of each run
-        mean_file = ['mean', prefix, participant, '_run_', run_list{1}, '.nii'];
-    else          % Registered to the mean image of each run
-        mean_file = [prefix, 'meanepi_', participant, '.nii'];
-    end
-    source_mean = fullfile(baseDir, imagingRawDir, participant, sprintf('sess%d', sess), mean_file);
-    dest_mean   = fullfile(baseDir, imagingDir, participant, sprintf('sess%d', sess), mean_file);
-    
-    [status, msg] = movefile(source_mean, dest_mean);
-    if ~status
-        error('BIDS:move_realigned_images -> %s', msg)
-    end
 end
