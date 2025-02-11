@@ -22,7 +22,7 @@ end
 % Extract the participant ID (e.g., 's101') using the subject number.
 participant = char(pinfo.participant_id(pinfo.sn == sn));
 
-% For runs, use the FuncRuns field from the TSV file.
+% For runs, use the runSessN field from the TSV file.
 run_list = pinfo.FuncRuns(pinfo.sn == sn);
 % If run_list is a single string containing delimited runs, split it:
 if ischar(run_list)
@@ -33,12 +33,21 @@ run_list = cellfun(@(x) sprintf('%.02d', str2double(x)), run_list, 'UniformOutpu
 
 % Loop over sessions (using the numSess field)
 for sess = 1:pinfo.numSess(pinfo.sn == sn)
-    
+    runSessField = sprintf('runsSess%d', sess); % Construct run field name based on current session
+    if isfield(pinfo, runSessField) % Check if the field exists
+        runSessN = pinfo.(runSessField); % Extract values from the corresponding column
+        validRuns = pinfo.FuncRuns(ismember(pinfo.(runSessField), runSessN)); % Get the runs
+        run_list = regexp(validRuns, '\.', 'split'); %Split by dots into a cell
+        run_list = [run_list{:}];%convert to list
+        run_list = cellfun(@str2double, run_list);
+        run_list = arrayfun(@(x) sprintf('%02d', x), run_list, 'UniformOutput', false); %convert from 1 to 01 etc.
+    end
     % Loop on runs of the session:
     for r = 1:length(run_list)
         % Construct the file name.
-        % If your files are like "us1XX_run_XX_sbref.nii", then:
+        % If the files are like "us1XX_run_XX_sbref.nii", then:
         file_name = [prefix, participant, '_run_', run_list{r}, '_sbref.nii'];
+        % TODO: Discuss the decision to use SBREF instead of multiplanar
         fprintf('Processing file: %s\n', file_name)
         
         % Define source and destination directories:
