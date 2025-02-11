@@ -5,7 +5,7 @@ function spmj_move_realigned_images(sn, varargin)
 % Setting the base directory for the current project
 baseDir = '/Volumes/Diedrichsen_data$/data/Chord_exp/EFC_patternfMRI';
 imagingRawDir = 'imaging_data_raw';     % Temporary directory for raw functional data
-imagingDir    = 'imaging_data_test';     % Preprocessed functional data
+imagingDir    = 'imaging_data';     % Preprocessed functional data
 
 % Read subject info from the participants.tsv file
 pinfo = dload(fullfile(baseDir, 'participants.tsv'));
